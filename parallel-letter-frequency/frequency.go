@@ -10,6 +10,7 @@ func Frequency(s string) FreqMap {
 	return m
 }
 
+// Counting the frequency of letters.
 // map does not allowed concurent write, even if it is
 // monotonously increasing
 func ConcurrentFrequency(s []string) FreqMap {

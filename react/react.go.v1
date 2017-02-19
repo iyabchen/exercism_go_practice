@@ -1,0 +1,152 @@
+package react
+
+const testVersion = 4
+
+// Implement a basic reactive system with cells with settable values, including:
+// a reactor, to maintain the cells
+// input cells, to store only values
+// compute cells, stores value, and calculate based on other cells
+//
+// Once the related cell value is changed, then it will trigger compute cells
+// to recalculate values, until the system reaches to a stable status.
+//
+// In addition, compute cells should allow for registering change notification
+// callbacks.  Call a cell’s callbacks when the cell’s value in a new stable
+// state has changed from the previous stable state.
+
+// reactor
+type MyReactor struct {
+	cells []*MyCell
+}
+
+// cell, could be either compute cell or input cell
+// depends on whether f1, f2 are set
+type MyCell struct {
+	val       int
+	reactor   *MyReactor
+	inx       int
+	ref1      *MyCell
+	ref2      *MyCell
+	f1        func(int) int
+	f2        func(int, int) int
+	callbacks []func(int)
+}
+
+type CellCallbackHandler int
+
+func New() *MyReactor {
+	r := MyReactor{cells: make([]*MyCell, 0)}
+	return &r
+
+}
+
+// CreateInput creates an input cell linked into the reactor
+// with the given initial value.
+func (r *MyReactor) CreateInput(value int) InputCell {
+	newcell := MyCell{val: value, reactor: r, inx: len(r.cells)}
+	r.cells = append(r.cells, &newcell)
+	return &newcell
+
+}
+
+// CreateCompute1 creates a compute cell which computes its value
+// based on one other cell. The compute function will only be called
+// if the value of the passed cell changes.
+func (r *MyReactor) CreateCompute1(in Cell, f func(int) int) ComputeCell {
+	c := in.(*MyCell)
+	newcell := MyCell{val: f(c.Value()), reactor: r,
+		inx: len(r.cells), ref1: c, f1: f}
+	r.cells = append(r.cells, &newcell)
+	return &newcell
+}
+
+// CreateCompute2 is like CreateCompute1, but depending on two cells.
+// The compute function will only be called if the value of any of the
+// passed cells changes.
+func (r *MyReactor) CreateCompute2(in1 Cell, in2 Cell,
+	f func(int, int) int) ComputeCell {
+	c1 := in1.(*MyCell)
+	c2 := in2.(*MyCell)
+	newcell := MyCell{val: f(c1.Value(), c2.Value()), reactor: r,
+		inx: len(r.cells), ref1: c1, ref2: c2, f2: f}
+	r.cells = append(r.cells, &newcell)
+	return &newcell
+
+}
+
+func (c *MyCell) Value() int {
+	return c.val
+}
+
+// SetValue is invoked in input cell, and it triggers compute cell to change
+func (c *MyCell) SetValue(n int) {
+	// TODO
+	if c.val == n { // if value not changed, then return
+		return
+	} else {
+		reactor := c.reactor
+		cells := reactor.cells
+		c.val = n
+		changed := make(map[int]bool)
+		changed[c.inx] = true
+
+		// not just the cells which referencing this cell will be changed, but
+		// there are chained reactions, so all cells created after this cell
+		// need to recalculate the value
+		// since creation of cells are based on the previous cells in the array
+		// if previous cells' values are stable, then the later can rely on
+		// that result, and need not worry about a loop
+		for i, cell := range cells {
+			if i > c.inx {
+				if cell.f1 == nil && cell.f2 == nil {
+					continue
+				}
+				if (cell.f1 != nil && !changed[cell.ref1.inx]) ||
+					(cell.f2 != nil && !changed[cell.ref1.inx] &&
+						!changed[cell.ref2.inx]) {
+					continue
+				}
+
+				result := 0
+				if cell.f1 != nil {
+					result = cell.f1(cell.ref1.val)
+				} else if cell.f2 != nil {
+					result = cell.f2(cell.ref1.val, cell.ref2.val)
+				}
+				if result != cell.val {
+					changed[cell.inx] = true
+					cell.val = result
+					cells[cell.inx].ExecuteAllCallbacks()
+				}
+
+			}
+		}
+
+	}
+}
+
+// AddCallback adds a callback which is called when value of that cell changes.
+// It returns a callback handle which can be used to remove the callback.
+// These callbacks will not change cell values.
+func (c *MyCell) AddCallback(f func(int)) CallbackHandle {
+	cbLen := len(c.callbacks)
+	c.callbacks = append(c.callbacks, f)
+	return CellCallbackHandler(cbLen)
+}
+
+// RemoveCallback removes a previously added callback, if it exists.
+// since callback handler is an index in the array, so the callback array
+// cannot change its relative order of the members
+func (c *MyCell) RemoveCallback(handler CallbackHandle) {
+	inx := handler.(CellCallbackHandler)
+	c.callbacks[inx] = nil
+
+}
+
+func (c *MyCell) ExecuteAllCallbacks() {
+	for _, f := range c.callbacks {
+		if f != nil {
+			f(c.val)
+		}
+	}
+}

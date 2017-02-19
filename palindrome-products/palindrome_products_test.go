@@ -77,7 +77,7 @@ var bonusData = []struct {
 
 func TestPalindromeProducts(t *testing.T) {
 	// Uncomment the following line to add the bonus test to the default tests
-	// testData = append(testData, bonusData...)
+	testData = append(testData, bonusData...)
 	for _, test := range testData {
 		// common preamble for test failures
 		ret := fmt.Sprintf("Products(%d, %d) returned",

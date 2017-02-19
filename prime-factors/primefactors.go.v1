@@ -1,0 +1,45 @@
+package prime
+
+import "../sieve"
+import "math"
+
+const testVersion = 2
+
+// Compute the prime factors of a given natural number.
+// Return prime factors in increasing order
+// eg. Given 60, return 2, 2, 3, 5
+
+// this method is much faster:
+// 	BenchmarkPrimeFactors-4   	     500	   2824161 ns/op
+// However, when the number gets too large for sieve to find all the prime numbers
+// it has to rely on a guess at the end
+func Factors(number int64) []int64 {
+	var primes []int64
+	if number < 10 {
+		// no sqrt to include small numbers like 2, 3
+		primes = sieve.Sieve(number)
+	} else {
+		// sieve will overflow if number is too large
+		// sqrt to narrow down the prime factors range
+		primes = sieve.Sieve(int64(math.Sqrt(float64(number))))
+	}
+	ret := []int64{}
+	for i := 0; i < len(primes); {
+		if number%primes[i] == 0 {
+			ret = append(ret, primes[i])
+			number = number / primes[i]
+			if number == 1 {
+				break
+			}
+		} else {
+			i++
+		}
+	}
+	if number > 1 {
+		// if after traversing the whole prime array, and still
+		// cannot n > 1, then the rest might be a prime itself
+		ret = append(ret, number)
+
+	}
+	return ret
+}
