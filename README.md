@@ -38,6 +38,4 @@ word-search - all about looping, search words in different directions
 
 poker - find best hands
 
-forth - implement a simple part of parser for programming language forth
-
-        (practice for design pattern)
+forth - implement a simple part of parser for programming language forth (practice for design pattern)
