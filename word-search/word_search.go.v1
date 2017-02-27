@@ -1,0 +1,198 @@
+// In a square of letters, find specific words in them.
+// Words can be hidden in all kinds of directions: left-to-right, right-to-left,
+// vertical and diagonal.
+
+package wordsearch
+
+import (
+	"errors"
+	"strings"
+)
+
+const testVersion = 3
+
+// given a puzzle and a list of words returns the location
+// of the first and last letter of each word.
+// Based on the given func identity, each word shows up at most once
+func Solve(words []string, puzzle []string) (map[string][2][2]int, error) {
+	if len(puzzle) == 0 {
+		return nil, errors.New("Empty square")
+	}
+	if len(words) == 0 {
+		return nil, nil
+	}
+	revWords := make([]string, len(words))
+	for i, w := range words {
+		revWords[i] = ReverseString(w)
+	}
+
+	h := len(puzzle)
+	w := len(puzzle[0])
+
+	diaganol1PosMap := func(x, y int) [2]int {
+		var x1, y1 int
+		if y < h {
+			x1 = x
+			y1 = y - x
+		} else {
+			x1 = x + y - h + 1
+			y1 = h - 1 - x
+		}
+		return [2]int{x1, y1}
+	}
+
+	diaganol2PosMap := func(x, y int) [2]int {
+		var x1, y1 int
+		if y < w {
+			x1 = w - y - 1 + x
+			y1 = x
+		} else {
+			x1 = x
+			y1 = y - w + x + 1
+		}
+		return [2]int{x1, y1}
+	}
+	result := make(map[string][2][2]int)
+	helper(words, revWords, puzzle, result, horizontalPosMap)
+	helper(words, revWords, TransposeSquare(puzzle), result, verticalPosMap)
+	helper(words, revWords, Diaganol1(puzzle), result, diaganol1PosMap)
+	helper(words, revWords, Diaganol2(puzzle), result, diaganol2PosMap)
+	return result, nil
+}
+
+// Find the words, and map the index back to the original axis
+func helper(words []string, revwords []string, puzzle []string,
+	result map[string][2][2]int,
+	mapfunc func(int, int) [2]int) {
+
+	for pos_y, p := range puzzle {
+		for i, w := range words {
+			pos_x := strings.Index(p, w)
+			if pos_x != -1 {
+
+				result[w] = [2][2]int{
+					mapfunc(pos_x, pos_y),
+					mapfunc(pos_x+len(w)-1, pos_y),
+				}
+			}
+
+			pos_x = strings.Index(p, revwords[i])
+			if pos_x != -1 {
+
+				result[w] = [2][2]int{
+					mapfunc(pos_x+len(w)-1, pos_y),
+					mapfunc(pos_x, pos_y),
+				}
+			}
+		}
+	}
+}
+
+// Reverse a string
+func ReverseString(src string) string {
+	runeArr := make([]rune, 0)
+	for _, v := range src {
+		runeArr = append(runeArr, v)
+	}
+
+	arrLen := len(runeArr)
+	for i := 0; i < arrLen/2; i++ {
+		runeArr[i], runeArr[arrLen-1-i] = runeArr[arrLen-1-i], runeArr[i]
+	}
+	return string(runeArr)
+}
+
+// Transpose the square. Presume all character are byte size
+func TransposeSquare(puzzle []string) []string {
+	h := len(puzzle)
+	w := len(puzzle[0])
+
+	result := []string{}
+	for i := 0; i < w; i++ {
+		byteArr := make([]byte, h)
+		for j := 0; j < h; j++ {
+			byteArr[j] = puzzle[j][i]
+		}
+		result = append(result, string(byteArr))
+	}
+	return result
+}
+
+// diaganol from west to north
+func Diaganol1(puzzle []string) []string {
+	w := len(puzzle)
+	h := len(puzzle[0])
+	result := []string{}
+
+	for i := 0; i < h; i++ {
+		byteArr := make([]byte, 0)
+		for j, k := i, 0; j >= 0; j, k = j-1, k+1 {
+			if len(puzzle[j]) > k {
+				byteArr = append(byteArr, puzzle[j][k])
+			} else {
+				break
+			}
+		}
+		result = append(result, string(byteArr))
+	}
+	for i := 1; i < w; i++ {
+		byteArr := make([]byte, 0)
+		for j, k := h-1, i; j >= 0; j, k = j-1, k+1 {
+			if len(puzzle[j]) > k {
+				byteArr = append(byteArr, puzzle[j][k])
+			}
+		}
+		result = append(result, string(byteArr))
+	}
+	return result
+
+}
+
+// diaganol from north to east
+func Diaganol2(puzzle []string) []string {
+	w := len(puzzle)
+	h := len(puzzle[0])
+	result := []string{}
+
+	for i := h - 1; i >= 0; i-- {
+		byteArr := make([]byte, 0)
+		for j, k := i, 0; j < w; j, k = j+1, k+1 {
+			if len(puzzle[k]) > j {
+				byteArr = append(byteArr, puzzle[k][j])
+			} else {
+				break
+			}
+		}
+		result = append(result, string(byteArr))
+	}
+	for i := 1; i < h; i++ {
+		byteArr := make([]byte, 0)
+		for j, k := i, 0; j < h; j, k = j+1, k+1 {
+			if len(puzzle[j]) > k {
+				byteArr = append(byteArr, puzzle[j][k])
+			}
+		}
+		result = append(result, string(byteArr))
+	}
+	return result
+
+}
+
+//horizontal position map
+func horizontalPosMap(x, y int) [2]int {
+	var x1, y1 int
+
+	x1 = x
+	y1 = y
+	return [2]int{x1, y1}
+}
+
+//vertical position map
+
+func verticalPosMap(x, y int) [2]int {
+	var x1, y1 int
+
+	x1 = y
+	y1 = x
+	return [2]int{x1, y1}
+}

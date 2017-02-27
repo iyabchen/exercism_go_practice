@@ -20,3 +20,8 @@ simple-cipher - implement similar ciphers, a practice of interfaces
 paasio - implement reader/writer wrapper. concurrency & interface practice
 pov - change root of a tree. Practices for graph creation & manipulation 
 minesweeper - find out how many mines in each empty block
+robot-simulator - communications using channel between robots, room, and program
+word-search - all about looping, search words in different directions
+poker - find best hands
+forth - implement a simple part of parser for programming language forth
+        (practice for design pattern)
